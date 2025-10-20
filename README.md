@@ -20,29 +20,50 @@ This MCP (Model Context Protocol) server enables AI assistants like Claude to in
 
 ## Installation
 
+### Quick Install (Recommended)
+
+Install directly via npm and add to Claude Code in one command:
+
+```bash
+claude mcp add --transport stdio cleanslate \
+  --env CLEANSLATE_API_KEY=your_api_key_here \
+  --env CLEANSLATE_API_BASE_URL=https://your-instance.jinocenc.io/auth/graphql \
+  -- npx -y cleanslate-mcp
+```
+
+Replace `your_api_key_here` with your CleanSlate API key (found in CleanSlate Settings > API Token) and `your-instance.jinocenc.io` with your CleanSlate instance URL.
+
+### Alternative: Install from Source
+
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/cleanslate-mcp.git
+git clone https://github.com/Juxsta/cleanslate-mcp.git
 cd cleanslate-mcp
 
 # Install dependencies
 pnpm install
 
-# Copy environment template
-cp .env.example .env
+# Build the project
+pnpm build
 
-# Edit .env and add your CleanSlate API key
-nano .env
+# Add to Claude Code
+claude mcp add --transport stdio cleanslate \
+  --env CLEANSLATE_API_KEY=your_api_key_here \
+  --env CLEANSLATE_API_BASE_URL=https://your-instance.jinocenc.io/auth/graphql \
+  -- node /path/to/cleanslate-mcp/dist/index.js
 ```
 
 ## Configuration
 
-Get your API key from the CleanSlate settings page and add it to `.env`:
+**Getting Your API Key:**
+1. Open your CleanSlate instance (e.g., https://cleanslate.jinocenc.io)
+2. Go to Settings
+3. Find "API Token" in the Information section
+4. Copy the token value
 
-```env
-CLEANSLATE_API_KEY=your_api_key_here
-CLEANSLATE_API_BASE_URL=https://api.cleanslate.sh/v1
-```
+**Finding Your Instance URL:**
+- If you're using the hosted version: `https://cleanslate.jinocenc.io/auth/graphql`
+- If self-hosted: `https://your-domain.com/auth/graphql`
 
 ## Development
 
@@ -61,24 +82,6 @@ pnpm lint
 
 # Format code
 pnpm format
-```
-
-## Usage with Claude Code
-
-Add the server to your Claude Code MCP configuration:
-
-```json
-{
-  "mcpServers": {
-    "cleanslate": {
-      "command": "node",
-      "args": ["/path/to/cleanslate-mcp/dist/index.js"],
-      "env": {
-        "CLEANSLATE_API_KEY": "your_api_key_here"
-      }
-    }
-  }
-}
 ```
 
 ## Philosophy
