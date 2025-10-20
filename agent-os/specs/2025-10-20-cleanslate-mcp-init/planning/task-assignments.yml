@@ -1,0 +1,24 @@
+task_assignments:
+  - task_group: "Task Group 1: Project Foundation & Setup"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 2: Core Type Definitions & Utilities"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 3: CleanSlate API Client Implementation"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 4: MCP Server Foundation"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 5: MCP Tool Implementations - Part 1 (log_food, get_today_log)"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 6: MCP Tool Implementations - Part 2 (delete, edit, summary)"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 7: Testing & Quality Assurance"
+    assigned_subagent: "testing-engineer"
+
+  - task_group: "Task Group 8: Documentation & Final Integration"
+    assigned_subagent: "api-engineer"

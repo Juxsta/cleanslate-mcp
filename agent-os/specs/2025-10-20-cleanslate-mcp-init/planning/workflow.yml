@@ -1,0 +1,15 @@
+workflow:
+  name: "CleanSlate MCP Server - Project Initialization"
+  phases:
+    - planning
+    - implementation
+    - verification
+
+  current_phase: "planning"
+
+  planning_complete: true
+
+  next_steps:
+    - "Create spec.md with detailed technical specification"
+    - "Create tasks.md with actionable development tasks"
+    - "Verify spec against requirements"
