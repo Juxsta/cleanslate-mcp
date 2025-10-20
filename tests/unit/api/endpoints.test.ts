@@ -41,14 +41,12 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            insert_quick_logs_one: {
-              id: mockFoodEntry.id,
-              name: mockFoodEntry.name,
-              calories: mockFoodEntry.calories,
-              protein: mockFoodEntry.protein,
-              createdAt: mockFoodEntry.timestamp,
-            },
+          insert_quick_logs_one: {
+            id: mockFoodEntry.id,
+            name: mockFoodEntry.name,
+            calories: mockFoodEntry.calories,
+            protein: mockFoodEntry.protein,
+            createdAt: mockFoodEntry.timestamp,
           },
         }),
       });
@@ -79,17 +77,15 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            quick_logs: [
-              {
-                id: mockFoodEntry.id,
-                name: mockFoodEntry.name,
-                calories: mockFoodEntry.calories,
-                protein: mockFoodEntry.protein,
-                createdAt: mockFoodEntry.timestamp,
-              },
-            ],
-          },
+          quick_logs: [
+            {
+              id: mockFoodEntry.id,
+              name: mockFoodEntry.name,
+              calories: mockFoodEntry.calories,
+              protein: mockFoodEntry.protein,
+              createdAt: mockFoodEntry.timestamp,
+            },
+          ],
         }),
       });
 
@@ -111,9 +107,7 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            quick_logs: [],
-          },
+          quick_logs: [],
         }),
       });
 
@@ -128,9 +122,7 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            quick_logs: [],
-          },
+          quick_logs: [],
         }),
       });
 
@@ -161,10 +153,8 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            delete_quick_logs_by_pk: {
-              id: mockFoodEntry.id,
-            },
+          delete_quick_logs_by_pk: {
+            id: mockFoodEntry.id,
           },
         }),
       });
@@ -191,14 +181,12 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            update_quick_logs_by_pk: {
-              id: updatedEntry.id,
-              name: updatedEntry.name,
-              calories: updatedEntry.calories,
-              protein: updatedEntry.protein,
-              createdAt: updatedEntry.timestamp,
-            },
+          update_quick_logs_by_pk: {
+            id: updatedEntry.id,
+            name: updatedEntry.name,
+            calories: updatedEntry.calories,
+            protein: updatedEntry.protein,
+            createdAt: updatedEntry.timestamp,
           },
         }),
       });
@@ -223,14 +211,12 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            update_quick_logs_by_pk: {
-              id: updatedEntry.id,
-              name: updatedEntry.name,
-              calories: updatedEntry.calories,
-              protein: updatedEntry.protein,
-              createdAt: updatedEntry.timestamp,
-            },
+          update_quick_logs_by_pk: {
+            id: updatedEntry.id,
+            name: updatedEntry.name,
+            calories: updatedEntry.calories,
+            protein: updatedEntry.protein,
+            createdAt: updatedEntry.timestamp,
           },
         }),
       });
@@ -249,14 +235,12 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            update_quick_logs_by_pk: {
-              id: mockFoodEntry.id,
-              name: mockFoodEntry.name,
-              calories: 200,
-              protein: mockFoodEntry.protein,
-              createdAt: mockFoodEntry.timestamp,
-            },
+          update_quick_logs_by_pk: {
+            id: mockFoodEntry.id,
+            name: mockFoodEntry.name,
+            calories: 200,
+            protein: mockFoodEntry.protein,
+            createdAt: mockFoodEntry.timestamp,
           },
         }),
       });
@@ -293,9 +277,7 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            quick_logs: [entry1, entry2],
-          },
+          quick_logs: [entry1, entry2],
         }),
       });
 
@@ -314,9 +296,7 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          data: {
-            quick_logs: [],
-          },
+          quick_logs: [],
         }),
       });
 
