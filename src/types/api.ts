@@ -1,5 +1,26 @@
 import { FoodEntry } from "./food-entry.js";
 
+/** GraphQL request structure for /auth/graphql endpoint */
+export interface GraphQLRequest {
+  token: string;
+  query: string;
+  variables?: Record<string, unknown>;
+}
+
+/** GraphQL response structure */
+export interface GraphQLResponse<T> {
+  data?: T;
+  errors?: GraphQLError[];
+}
+
+/** GraphQL error structure */
+export interface GraphQLError {
+  message: string;
+  locations?: Array<{ line: number; column: number }>;
+  path?: string[];
+  extensions?: Record<string, unknown>;
+}
+
 /** Request payload for creating a new food entry */
 export interface CreateFoodEntryRequest {
   name: string;
@@ -46,4 +67,40 @@ export interface ApiError {
   error: string;
   message: string;
   statusCode: number;
+}
+
+/** GraphQL quick_logs table response structure */
+export interface QuickLogData {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  createdAt: string;
+  updatedAt?: string;
+  consumed?: string;
+  meal?: string;
+  type?: string;
+  profile?: string;
+}
+
+/** GraphQL mutation response for creating a quick log */
+export interface CreateQuickLogData {
+  insert_quick_logs_one: QuickLogData;
+}
+
+/** GraphQL mutation response for updating a quick log */
+export interface UpdateQuickLogData {
+  update_quick_logs_by_pk: QuickLogData;
+}
+
+/** GraphQL mutation response for deleting a quick log */
+export interface DeleteQuickLogData {
+  delete_quick_logs_by_pk: {
+    id: string;
+  };
+}
+
+/** GraphQL query response for getting quick logs */
+export interface GetQuickLogsData {
+  quick_logs: QuickLogData[];
 }

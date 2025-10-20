@@ -2,8 +2,8 @@
  * Application-wide constants
  */
 
-/** Default CleanSlate API base URL */
-export const DEFAULT_API_BASE_URL = "https://api.cleanslate.sh/v1";
+/** Default CleanSlate API GraphQL endpoint (with token-based authentication) */
+export const DEFAULT_API_BASE_URL = "https://cleanslate.jinocenc.io/auth/graphql";
 
 /** Default HTTP request timeout in milliseconds */
 export const REQUEST_TIMEOUT_MS = 10000;
@@ -11,12 +11,12 @@ export const REQUEST_TIMEOUT_MS = 10000;
 /** Default maximum retry attempts for failed requests */
 export const MAX_RETRIES = 1;
 
-/** API endpoint paths */
-export const ENDPOINTS = {
-  FOOD_ENTRIES: "/food-entries",
-  FOOD_ENTRIES_TODAY: "/food-entries/today",
-  FOOD_ENTRIES_TODAY_SUMMARY: "/food-entries/today/summary",
-  FOOD_ENTRY_BY_ID: (id: string) => `/food-entries/${id}`,
+/** GraphQL operation names */
+export const GRAPHQL_OPERATIONS = {
+  CREATE_QUICK_LOG: "CREATE_QUICK_LOG",
+  UPDATE_QUICK_LOG: "UPDATE_QUICK_LOG",
+  DELETE_QUICK_LOG: "DELETE_QUICK_LOG",
+  GET_TODAY_LOGS: "GET_TODAY_LOGS",
 } as const;
 
 /** HTTP status codes */

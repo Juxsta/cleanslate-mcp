@@ -1,8 +1,8 @@
 /**
- * Unit tests for CleanSlate API Endpoints
+ * Unit tests for CleanSlate GraphQL API Endpoints
  *
  * Tests all CRUD operations and summary endpoint functionality
- * with mocked API responses.
+ * with mocked GraphQL responses.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -16,7 +16,7 @@ describe('CleanSlateApiClient', () => {
   let client: CleanSlateApiClient;
   const mockConfig = {
     apiKey: 'test-key',
-    baseUrl: 'https://api.test.com/v1',
+    baseUrl: 'https://cleanslate.jinocenc.io/auth/graphql',
     timeout: 5000,
     maxRetries: 1,
   };
@@ -38,10 +38,18 @@ describe('CleanSlateApiClient', () => {
     it('should create food entry and return entry data', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        status: 201,
+        status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          entry: mockFoodEntry,
+          data: {
+            insert_quick_logs_one: {
+              id: mockFoodEntry.id,
+              name: mockFoodEntry.name,
+              calories: mockFoodEntry.calories,
+              protein: mockFoodEntry.protein,
+              createdAt: mockFoodEntry.timestamp,
+            },
+          },
         }),
       });
 
@@ -55,14 +63,10 @@ describe('CleanSlateApiClient', () => {
         entry: mockFoodEntry,
       });
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.test.com/v1/food-entries',
+        'https://cleanslate.jinocenc.io/auth/graphql',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({
-            name: 'Chicken breast',
-            calories: 165,
-            protein: 31,
-          }),
+          body: expect.stringContaining('CREATE_QUICK_LOG'),
         })
       );
     });
@@ -70,22 +74,34 @@ describe('CleanSlateApiClient', () => {
 
   describe('getTodayLog', () => {
     it('should retrieve array of food entries', async () => {
-      const entries = [mockFoodEntry];
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          entries,
+          data: {
+            quick_logs: [
+              {
+                id: mockFoodEntry.id,
+                name: mockFoodEntry.name,
+                calories: mockFoodEntry.calories,
+                protein: mockFoodEntry.protein,
+                createdAt: mockFoodEntry.timestamp,
+              },
+            ],
+          },
         }),
       });
 
       const result = await client.getTodayLog();
 
-      expect(result).toEqual({ entries });
+      expect(result).toEqual({ entries: [mockFoodEntry] });
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.test.com/v1/food-entries/today',
-        expect.objectContaining({ method: 'GET' })
+        'https://cleanslate.jinocenc.io/auth/graphql',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('GET_TODAY_LOGS'),
+        })
       );
     });
 
@@ -95,13 +111,46 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          entries: [],
+          data: {
+            quick_logs: [],
+          },
         }),
       });
 
       const result = await client.getTodayLog();
 
       expect(result).toEqual({ entries: [] });
+    });
+
+    it('should filter by today\'s timestamps', async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          data: {
+            quick_logs: [],
+          },
+        }),
+      });
+
+      await client.getTodayLog();
+
+      const fetchCall = (global.fetch as any).mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+
+      // Verify date filtering variables are present
+      expect(body.variables).toHaveProperty('today');
+      expect(body.variables).toHaveProperty('tomorrow');
+
+      // Verify they are valid ISO timestamps
+      expect(body.variables.today).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      expect(body.variables.tomorrow).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+
+      // Verify tomorrow is after today
+      const todayDate = new Date(body.variables.today);
+      const tomorrowDate = new Date(body.variables.tomorrow);
+      expect(tomorrowDate.getTime()).toBeGreaterThan(todayDate.getTime());
     });
   });
 
@@ -112,7 +161,11 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          success: true,
+          data: {
+            delete_quick_logs_by_pk: {
+              id: mockFoodEntry.id,
+            },
+          },
         }),
       });
 
@@ -121,8 +174,11 @@ describe('CleanSlateApiClient', () => {
 
       expect(result).toEqual({ success: true });
       expect(global.fetch).toHaveBeenCalledWith(
-        `https://api.test.com/v1/food-entries/${entryId}`,
-        expect.objectContaining({ method: 'DELETE' })
+        'https://cleanslate.jinocenc.io/auth/graphql',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('DELETE_QUICK_LOG'),
+        })
       );
     });
   });
@@ -135,7 +191,15 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          entry: updatedEntry,
+          data: {
+            update_quick_logs_by_pk: {
+              id: updatedEntry.id,
+              name: updatedEntry.name,
+              calories: updatedEntry.calories,
+              protein: updatedEntry.protein,
+              createdAt: updatedEntry.timestamp,
+            },
+          },
         }),
       });
 
@@ -144,10 +208,10 @@ describe('CleanSlateApiClient', () => {
 
       expect(result).toEqual({ entry: updatedEntry });
       expect(global.fetch).toHaveBeenCalledWith(
-        `https://api.test.com/v1/food-entries/${entryId}`,
+        'https://cleanslate.jinocenc.io/auth/graphql',
         expect.objectContaining({
-          method: 'PATCH',
-          body: JSON.stringify({ calories: 180 }),
+          method: 'POST',
+          body: expect.stringContaining('UPDATE_QUICK_LOG'),
         })
       );
     });
@@ -159,7 +223,15 @@ describe('CleanSlateApiClient', () => {
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
-          entry: updatedEntry,
+          data: {
+            update_quick_logs_by_pk: {
+              id: updatedEntry.id,
+              name: updatedEntry.name,
+              calories: updatedEntry.calories,
+              protein: updatedEntry.protein,
+              createdAt: updatedEntry.timestamp,
+            },
+          },
         }),
       });
 
@@ -170,47 +242,91 @@ describe('CleanSlateApiClient', () => {
 
       expect(result.entry.name).toBe('Grilled chicken');
     });
+
+    it('should send pk_columns and set variables correctly', async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          data: {
+            update_quick_logs_by_pk: {
+              id: mockFoodEntry.id,
+              name: mockFoodEntry.name,
+              calories: 200,
+              protein: mockFoodEntry.protein,
+              createdAt: mockFoodEntry.timestamp,
+            },
+          },
+        }),
+      });
+
+      await client.updateFoodEntry('test-id', { calories: 200 });
+
+      const fetchCall = (global.fetch as any).mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+
+      expect(body.variables.pk_columns).toEqual({ id: 'test-id' });
+      expect(body.variables.set).toEqual({ calories: 200 });
+    });
   });
 
   describe('getTodaySummary', () => {
-    it('should retrieve today\'s totals', async () => {
-      const summary = {
+    it('should retrieve today\'s totals calculated client-side', async () => {
+      const entry1 = {
+        id: '1',
+        name: 'Chicken',
+        calories: 165,
+        protein: 31,
+        createdAt: '2025-10-20T14:30:00Z',
+      };
+      const entry2 = {
+        id: '2',
+        name: 'Rice',
+        calories: 140,
+        protein: 12,
+        createdAt: '2025-10-20T15:30:00Z',
+      };
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          data: {
+            quick_logs: [entry1, entry2],
+          },
+        }),
+      });
+
+      const result = await client.getTodaySummary();
+
+      expect(result).toEqual({
         totalCalories: 305,
         totalProtein: 43,
         entryCount: 2,
-      };
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => summary,
       });
-
-      const result = await client.getTodaySummary();
-
-      expect(result).toEqual(summary);
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.test.com/v1/food-entries/today/summary',
-        expect.objectContaining({ method: 'GET' })
-      );
     });
 
     it('should handle empty log with zero totals', async () => {
-      const summary = {
-        totalCalories: 0,
-        totalProtein: 0,
-        entryCount: 0,
-      };
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => summary,
+        json: async () => ({
+          data: {
+            quick_logs: [],
+          },
+        }),
       });
 
       const result = await client.getTodaySummary();
 
-      expect(result).toEqual(summary);
+      expect(result).toEqual({
+        totalCalories: 0,
+        totalProtein: 0,
+        entryCount: 0,
+      });
     });
   });
 });

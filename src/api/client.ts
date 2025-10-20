@@ -3,10 +3,7 @@ import {
   AuthenticationError,
   CleanSlateError,
   NetworkError,
-  NotFoundError,
-  ValidationError,
 } from "../utils/errors.js";
-import { HTTP_STATUS } from "../constants.js";
 
 export interface ClientConfig {
   apiKey: string;
@@ -20,8 +17,8 @@ interface ErrorResponse {
 }
 
 /**
- * HTTP client for CleanSlate API
- * Handles authentication, retries, and error mapping
+ * GraphQL client for CleanSlate API
+ * Handles authentication, retries, and error mapping for GraphQL operations
  */
 export class CleanSlateClient {
   private readonly config: ClientConfig;
@@ -31,29 +28,31 @@ export class CleanSlateClient {
   }
 
   /**
-   * Execute HTTP request with authentication and error handling
+   * Execute GraphQL query or mutation with authentication and error handling
    */
-  protected async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
+  protected async executeGraphQL<T>(
+    query: string,
+    variables?: Record<string, unknown>
   ): Promise<T> {
-    const url = `${this.config.baseUrl}${endpoint}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 
     try {
-      const response = await this.fetchWithRetry(url, {
-        ...options,
+      const response = await this.fetchWithRetry(this.config.baseUrl, {
+        method: "POST",
         signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${this.config.apiKey}`,
-          ...options.headers,
         },
+        body: JSON.stringify({
+          token: this.config.apiKey,
+          query,
+          variables,
+        }),
       });
 
       clearTimeout(timeoutId);
-      return await this.handleResponse<T>(response);
+      return await this.handleGraphQLResponse<T>(response);
     } catch (error) {
       clearTimeout(timeoutId);
       throw this.handleError(error);
@@ -81,52 +80,51 @@ export class CleanSlateClient {
   }
 
   /**
-   * Handle HTTP response and parse JSON
+   * Handle GraphQL response and parse JSON
+   * Note: CleanSlate's /auth/graphql endpoint returns data directly, not wrapped in { data: {...} }
    */
-  private async handleResponse<T>(response: Response): Promise<T> {
+  private async handleGraphQLResponse<T>(response: Response): Promise<T> {
     const contentType = response.headers.get("content-type");
     const isJson = contentType?.includes("application/json");
 
     if (!response.ok) {
-      let errorBody: ErrorResponse;
+      // Handle HTTP-level errors
+      let errorMessage: string;
 
       try {
-        errorBody = isJson
-          ? ((await response.json()) as ErrorResponse)
-          : { message: await response.text() };
+        if (isJson) {
+          const errorBody = (await response.json()) as ErrorResponse;
+          errorMessage = errorBody.message || "Unknown error occurred";
+        } else {
+          errorMessage = await response.text();
+        }
       } catch {
-        errorBody = { message: "Unknown error occurred" };
+        errorMessage = "Unknown error occurred";
       }
 
-      switch (response.status) {
-        case HTTP_STATUS.BAD_REQUEST:
-          throw new ValidationError(
-            errorBody.message || "Invalid request data"
-          );
-        case HTTP_STATUS.UNAUTHORIZED:
-        case HTTP_STATUS.FORBIDDEN:
-          throw new AuthenticationError(
-            errorBody.message ||
-              "Invalid API key. Check your CLEANSLATE_API_KEY configuration."
-          );
-        case HTTP_STATUS.NOT_FOUND:
-          throw new NotFoundError(
-            errorBody.message ||
-              "That entry wasn't found. It may have been deleted."
-          );
-        default:
-          throw new ApiError(
-            errorBody.message ||
-              "Couldn't complete request right now. Try again in a moment."
-          );
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthenticationError(
+          "Invalid API key. Check your CLEANSLATE_API_KEY configuration."
+        );
       }
+
+      throw new ApiError(
+        errorMessage || "Couldn't complete request right now. Try again in a moment."
+      );
     }
 
-    if (isJson) {
-      return (await response.json()) as T;
+    if (!isJson) {
+      throw new ApiError("Expected JSON response from GraphQL endpoint");
     }
 
-    return {} as T;
+    // The /auth/graphql endpoint returns data directly without GraphQL wrapper
+    const data = (await response.json()) as T;
+
+    if (!data) {
+      throw new ApiError("No data returned from GraphQL query");
+    }
+
+    return data;
   }
 
   /**
@@ -152,39 +150,5 @@ export class CleanSlateClient {
     }
 
     return new ApiError();
-  }
-
-  /**
-   * HTTP GET request
-   */
-  protected async get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "GET" });
-  }
-
-  /**
-   * HTTP POST request
-   */
-  protected async post<T>(endpoint: string, body: unknown): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-  }
-
-  /**
-   * HTTP PATCH request
-   */
-  protected async patch<T>(endpoint: string, body: unknown): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    });
-  }
-
-  /**
-   * HTTP DELETE request
-   */
-  protected async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "DELETE" });
   }
 }

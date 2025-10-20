@@ -92,9 +92,9 @@ All components are new for this Phase 1 implementation:
 │  └──────────────┬─────────────────────────┘ │
 └─────────────────┼──────────────────────────┘
                   │ HTTPS
-                  │ REST API
+                  │ GraphQL API
 ┌─────────────────▼──────────────────────────┐
-│         CleanSlate API (cleanslate.sh)     │
+│    CleanSlate GraphQL API (/auth/graphql) │
 └────────────────────────────────────────────┘
 ```
 
@@ -151,16 +151,58 @@ No local database required. All data is managed by the CleanSlate API. The MCP s
 
 ### API Integration
 
-#### CleanSlate API Endpoints
+#### CleanSlate GraphQL API
 
-**Base URL**: `https://api.cleanslate.sh/v1` (assumed - to be confirmed)
+**Endpoint**: `https://cleanslate.jinocenc.io/auth/graphql`
 
-**Required Endpoints**:
-1. `POST /food-entries` - Create food entry for today
-2. `GET /food-entries/today` - Retrieve today's entries
-3. `DELETE /food-entries/:id` - Delete specific entry
-4. `PATCH /food-entries/:id` - Update existing entry
-5. `GET /food-entries/today/summary` - Get today's totals
+**Protocol**: GraphQL (not REST)
+- All operations use POST requests to the GraphQL endpoint
+- Operations defined as GraphQL queries (reads) and mutations (writes)
+
+**Required Operations**:
+
+1. **CREATE_QUICK_LOG** - Create food entry for today
+   ```graphql
+   mutation CREATE_QUICK_LOG($object: quick_logs_insert_input!) {
+     insert_quick_logs_one(object: $object) {
+       id name calories protein createdAt
+     }
+   }
+   ```
+
+2. **GET_TODAY_LOGS** - Retrieve today's entries
+   ```graphql
+   query GET_TODAY_LOGS($today: timestamptz, $tomorrow: timestamptz) {
+     quick_logs(where: { createdAt: { _gte: $today, _lte: $tomorrow } }) {
+       id name calories protein consumed createdAt meal type
+     }
+   }
+   ```
+
+3. **DELETE_QUICK_LOG** - Delete specific entry
+   ```graphql
+   mutation DELETE_QUICK_LOG($id: uuid!) {
+     delete_quick_logs_by_pk(id: $id) {
+       id
+     }
+   }
+   ```
+
+4. **UPDATE_LOG** - Update existing entry
+   ```graphql
+   mutation UPDATE_LOG($pk_columns: quick_logs_pk_columns_input!, $set: quick_logs_set_input) {
+     update_quick_logs_by_pk(pk_columns: $pk_columns, _set: $set) {
+       id name calories protein createdAt
+     }
+   }
+   ```
+
+5. **Summary calculation** - Calculated client-side by summing quick_logs results
+
+**Data Table**: `quick_logs`
+- Uses CleanSlate's `quick_logs` table (simple calorie/protein tracking)
+- Fields: `id`, `name`, `calories`, `protein`, `createdAt`, `consumed`, `meal`, `type`
+- Perfect alignment with our calories+protein only philosophy
 
 **Authentication**:
 - API Key authentication via `Authorization: Bearer {API_KEY}` header
@@ -168,17 +210,19 @@ No local database required. All data is managed by the CleanSlate API. The MCP s
 - All requests over HTTPS
 
 **Request/Response Format**:
-- JSON content type for all requests/responses
-- Standard HTTP status codes (200, 201, 400, 404, 500)
-- Error responses include `{ error: string, message: string }` format
+- JSON content type for all requests
+- GraphQL request format: `{ query: string, variables?: object }`
+- GraphQL response format: `{ data?: object, errors?: array }`
+- Errors returned in `errors` array, not HTTP status codes
 
 **Error Handling Strategy**:
-- Network errors: Retry once with 1-second delay, then fail gracefully
-- 401/403: Clear authentication error to user about invalid API key
-- 404: Entry not found - inform user entry may have been deleted
-- 400: Validation errors - surface field-specific messages
-- 5xx: CleanSlate service issue - inform user to retry later
-- Timeout: 10-second timeout per request
+- **GraphQL Errors**: Check `errors` array in response, extract user-friendly messages
+- **Network errors**: Retry once with 1-second delay, then fail gracefully
+- **401/403**: Clear authentication error to user about invalid API key
+- **404**: Entry not found - inform user entry may have been deleted
+- **400**: Validation errors - surface field-specific messages from GraphQL errors
+- **5xx**: CleanSlate service issue - inform user to retry later
+- **Timeout**: 10-second timeout per request
 
 **Rate Limiting**:
 - Respect `X-RateLimit-*` headers if present
@@ -553,7 +597,7 @@ export const GetTodaySummarySchema = z.object({});
 
 **Required**:
 - `CLEANSLATE_API_KEY`: API key for CleanSlate authentication (no default)
-- `CLEANSLATE_API_BASE_URL`: Base URL for CleanSlate API (default: `https://api.cleanslate.sh/v1`)
+- `CLEANSLATE_API_BASE_URL`: Base URL for CleanSlate GraphQL API (default: `https://cleanslate.jinocenc.io/auth/graphql`)
 
 **Optional**:
 - `LOG_LEVEL`: Logging verbosity (default: `info`, options: `debug`, `info`, `warn`, `error`)
@@ -568,7 +612,7 @@ import { z } from 'zod';
 
 const EnvironmentSchema = z.object({
   CLEANSLATE_API_KEY: z.string().min(1, "CLEANSLATE_API_KEY is required"),
-  CLEANSLATE_API_BASE_URL: z.string().url().default("https://api.cleanslate.sh/v1"),
+  CLEANSLATE_API_BASE_URL: z.string().url().default("https://cleanslate.jinocenc.io/auth/graphql"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   REQUEST_TIMEOUT_MS: z.coerce.number().positive().default(10000),
   MAX_RETRIES: z.coerce.number().int().min(0).max(3).default(1)
@@ -591,9 +635,9 @@ export function loadEnvironment(): Environment {
 ### .env.example
 
 ```
-# CleanSlate API Configuration
+# CleanSlate GraphQL API Configuration
 CLEANSLATE_API_KEY=your_api_key_here
-CLEANSLATE_API_BASE_URL=https://api.cleanslate.sh/v1
+CLEANSLATE_API_BASE_URL=https://cleanslate.jinocenc.io/auth/graphql
 
 # Optional Configuration
 LOG_LEVEL=info
