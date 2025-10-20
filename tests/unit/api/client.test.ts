@@ -36,12 +36,12 @@ describe('CleanSlateClient', () => {
   });
 
   describe('Authentication', () => {
-    it('should include Authorization Bearer token in request headers', async () => {
+    it('should include token in request body', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({ data: { test: 'value' } }),
+        json: async () => ({ test: 'value' }),
       });
 
       await client['executeGraphQL']('query { test }');
@@ -49,19 +49,20 @@ describe('CleanSlateClient', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         'https://cleanslate.jinocenc.io/auth/graphql',
         expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-api-key-123',
+          body: JSON.stringify({
+            token: 'test-api-key-123',
+            query: 'query { test }',
           }),
         })
       );
     });
 
-    it('should send GraphQL query in POST body', async () => {
+    it('should send GraphQL query with token and variables in POST body', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({ data: { test: 'value' } }),
+        json: async () => ({ test: 'value' }),
       });
 
       const query = 'query { test }';
@@ -72,79 +73,19 @@ describe('CleanSlateClient', () => {
         expect.any(String),
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ query, variables }),
+          body: JSON.stringify({ token: 'test-api-key-123', query, variables }),
         })
       );
     });
   });
 
-  describe('GraphQL Error Handling', () => {
-    it('should throw AuthenticationError for GraphQL auth errors', async () => {
+  describe('Response Handling', () => {
+    it('should throw ApiError when null data is returned', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({
-          errors: [{ message: 'Unauthorized access' }],
-        }),
-      });
-
-      await expect(client['executeGraphQL']('query { test }')).rejects.toThrow(
-        AuthenticationError
-      );
-    });
-
-    it('should throw ValidationError for GraphQL validation errors', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({
-          errors: [{ message: 'Invalid input data' }],
-        }),
-      });
-
-      await expect(client['executeGraphQL']('query { test }')).rejects.toThrow(
-        ValidationError
-      );
-    });
-
-    it('should throw NotFoundError for GraphQL not found errors', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({
-          errors: [{ message: 'Entry not found' }],
-        }),
-      });
-
-      await expect(client['executeGraphQL']('query { test }')).rejects.toThrow(
-        NotFoundError
-      );
-    });
-
-    it('should throw ApiError for generic GraphQL errors', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({
-          errors: [{ message: 'Something went wrong' }],
-        }),
-      });
-
-      await expect(client['executeGraphQL']('query { test }')).rejects.toThrow(
-        ApiError
-      );
-    });
-
-    it('should throw ApiError when no data is returned', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({}),
+        json: async () => null,
       });
 
       await expect(client['executeGraphQL']('query { test }')).rejects.toThrow(
@@ -209,7 +150,7 @@ describe('CleanSlateClient', () => {
           ok: true,
           status: 200,
           headers: new Headers({ 'content-type': 'application/json' }),
-          json: async () => ({ data: { success: true } }),
+          json: async () => ({ success: true }),
         });
 
       const result = await client['executeGraphQL']('query { test }');
@@ -236,7 +177,7 @@ describe('CleanSlateClient', () => {
         ok: true,
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({ data: mockData }),
+        json: async () => mockData,
       });
 
       const result = await client['executeGraphQL']('query { test }');
@@ -250,7 +191,7 @@ describe('CleanSlateClient', () => {
         ok: true,
         status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({ data: mockData }),
+        json: async () => mockData,
       });
 
       const result = await client['executeGraphQL'](
